@@ -1,8 +1,6 @@
 import numpy as np
-import scipy.signal as signal
+import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
-import wave
-
 
 def wah_wah_filter(input_signal, sample_rate, min_freq=500, max_freq=3000, lfo_freq=0.7, Q=1):
     """
@@ -63,42 +61,41 @@ def wah_wah_filter(input_signal, sample_rate, min_freq=500, max_freq=3000, lfo_f
 
     return output_signal
 
-# Example Usage
+# Main Script
 if __name__ == "__main__":
-    # Generate a sample input signal (sine wave)
-    sample_rate = 48000  # 48 kHz
-    duration = 5  # 5 seconds
-    t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-    
-    #use pure sin as input signal
-    #input_signal = 0.5 * np.sin(2 * np.pi * 440 * t)  # A440 tone (440 Hz)
+    # Read input WAV file
+    input_filename = "PinkPanther30.wav"
+    output_filename = "PinkPanther30_filtered.wav"
+    sample_rate, input_signal = wav.read(input_filename)
 
-    #use a .wav file as input signal
-    wav_path = "recording_0.wav"
-    with wave.open(wav_path, 'r') as wav_file:
-        raw_frames = wav_file.readframes(-1)
-        num_frames = wav_file.getnframes()
-        num_channels = wav_file.getnchannels()
-        sample_rate = wav_file.getframerate()
-        sample_width = wav_file.getsampwidth()
-            
-    temp_buffer = np.empty((num_frames, num_channels, 4), dtype=np.uint8)
-    raw_bytes = np.frombuffer(raw_frames, dtype=np.uint8)
-    temp_buffer[:, :, :sample_width] = raw_bytes.reshape(-1, num_channels, 
-                                                        sample_width)
-    temp_buffer[:, :, sample_width:] = \
-        (temp_buffer[:, :, sample_width-1:sample_width] >> 7) * 255
-    frames = temp_buffer.view('<i4').reshape(temp_buffer.shape[:-1])
+    print(input_signal.dtype)
 
-    input_signal = frames[:, 0]
+    # Check if the signal is stereo
+    if len(input_signal.shape) == 2:  # Stereo signal
+        input_signal = input_signal.mean(axis=1)  # Convert to mono by averaging channels
+
+    # Normalize signal to range [-1, 1] if necessary
+    if input_signal.dtype == np.int16:
+        input_signal = input_signal / 32768.0
+    elif input_signal.dtype == np.int32:
+        input_signal = input_signal / 2147483648.0
 
     # Apply the Wah-Wah filter
     filtered_signal = wah_wah_filter(input_signal, sample_rate)
 
+    # Scale back to int16 for saving
+    filtered_signal_scaled = np.int16(filtered_signal * 32767)
+
+    # Save the filtered signal to a new WAV file
+    wav.write(output_filename, sample_rate, filtered_signal_scaled)
+
+    print(f"Wah-Wah filter applied. Filtered audio saved to {output_filename}.")
+
     # Plot the original and filtered signals
+    t = np.arange(len(input_signal)) / sample_rate
     plt.figure(figsize=(10, 6))
     plt.plot(t, input_signal, label="Original Signal", alpha=0.7)
-    plt.plot(t, filtered_signal, label="Wah-Wah Filtered Signal", alpha=0.7)
+    plt.plot(t, filtered_signal, label="Filtered Signal", alpha=0.7)  # Scale back for plotting
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
     plt.title("Wah-Wah Filter Effect")
