@@ -3,7 +3,7 @@
 #include "hls_math.h"
 
 // AXI stream data type
-typedef ap_axiu<32, 1, 1, 1> AXI_DATA;
+typedef ap_axis<32, 1, 1, 1> AXI_DATA;
 
 // Wah-Wah filter parameters
 //#define SAMPLE_RATE 48000
@@ -57,7 +57,7 @@ void wah_wah_filter_axi(hls::stream<AXI_DATA>& input_stream, hls::stream<AXI_DAT
         input_data = input_stream.read();
 
         // Extract the input value
-        float input_sample = *reinterpret_cast<float*>(&input_data.data);
+        float input_sample = float(input_data.data);
 
         // Apply the Wah-Wah filter
         float filtered_sample = wah_wah_filter(input_sample, time, sample_rate, min_freq, max_freq, lfo_freq);
@@ -66,7 +66,7 @@ void wah_wah_filter_axi(hls::stream<AXI_DATA>& input_stream, hls::stream<AXI_DAT
         time += 1.0f / sample_rate;
 
         // Prepare output data
-        output_data.data = *reinterpret_cast<uint32_t*>(&filtered_sample);
+        output_data.data = int(filtered_sample);
         output_data.keep = input_data.keep;
         output_data.strb = input_data.strb;
         output_data.user = input_data.user;
