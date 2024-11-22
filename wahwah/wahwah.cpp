@@ -37,7 +37,7 @@ float wah_wah_filter(float input, float time, float sample_rate, float min_freq,
 }
 
 // Top-level function for Vitis HLS
-void wah_wah_filter_axi(hls::stream<AXI_DATA>& input_stream, hls::stream<AXI_DATA>& output_stream, int sample_rate, float min_freq, float max_freq, float lfo_freq) 
+void wah_wah_filter_axi(hls::stream<AXI_DATA>& input_stream, hls::stream<AXI_DATA>& output_stream, int &sample_rate, float &min_freq, float &max_freq, float &lfo_freq) 
 {
 #pragma HLS INTERFACE axis port=input_stream
 #pragma HLS INTERFACE axis port=output_stream
