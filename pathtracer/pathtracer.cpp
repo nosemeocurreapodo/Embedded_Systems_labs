@@ -1,83 +1,167 @@
-#include <hls_stream.h>
-#include <ap_axi_sdata.h>
-#include "hls_math.h"
+#include "pathtracer.h"
 
-// AXI stream data type
-typedef ap_axiu<32, 1, 1, 1> AXI_DATA;
+ap_uint<16> lfsr_random() {
+    #pragma HLS INLINE off
+    static ap_uint<16> lfsr = 0xACE1u; // Initial seed value (non-zero)
 
-// Wah-Wah filter parameters
-//#define SAMPLE_RATE 48000
-//#define MIN_FREQ 500.0f
-//#define MAX_FREQ 3000.0f
-//#define LFO_FREQ 0.2f // Frequency of the low-frequency oscillator (LFO)
+    // Tap positions for a 16-bit LFSR with a maximal length sequence
+    bool bit = lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10];
 
-// Filter state
-static float previous_input = 0.0f;
-static float previous_output = 0.0f;
-static float previous_freq = 0.0f;
+    // Shift left by 1 and insert the new bit
+    lfsr = (lfsr << 1) | bit;
 
-// Wah-Wah filter function
-float wah_wah_filter(float input, float time, float sample_rate, float min_freq, float max_freq, float lfo_freq) {
-    float LFO = 0.5f * (1.0f + hls::sin(2.0f * 3.14159265358979f * lfo_freq * time)); // Normalized LFO
-    float cutoff_freq = min_freq + LFO * (max_freq - min_freq);
-
-    // Calculate RC filter coefficients
-    float RC = 1.0f / (2.0f * 3.14159265358979f * cutoff_freq);
-    float alpha = RC / (RC + 1.0f / sample_rate);
-
-    // Apply the filter
-    float output = alpha * previous_output + (1.0f - alpha) * input;
-
-    // Update previous states
-    previous_output = output;
-    previous_input = input;
-    previous_freq = cutoff_freq;
-
-    return output;
+    return lfsr;
 }
 
-// Top-level function for Vitis HLS
-void wah_wah_filter_axi(hls::stream<AXI_DATA>& input_stream, hls::stream<AXI_DATA>& output_stream, int sample_rate, float min_freq, float max_freq, float lfo_freq) 
+float lfsr_uniform_random() {
+
+    ap_uint<16> r = lfsr_random();
+
+    return r/65536.0f;
+}
+
+Vec3 random_in_hemisphere(const Vec3 &normal)
 {
-#pragma HLS INTERFACE axis port=input_stream
-#pragma HLS INTERFACE axis port=output_stream
-#pragma HLS INTERFACE s_axilite port = sample_rate
-#pragma HLS INTERFACE s_axilite port = min_freq
-#pragma HLS INTERFACE s_axilite port = max_freq
-#pragma HLS INTERFACE s_axilite port = lfo_freq
-#pragma HLS INTERFACE s_axilite port = return
-
-    AXI_DATA input_data;
-    AXI_DATA output_data;
-    static float time = 0.0f;
-
-    // Process incoming data
-    while (true) 
+    Vec3 rand_dir;
+    do
     {
-        input_data = input_stream.read();
+        // rand_dir = Vec3(dis(gen) * 2 - 1, dis(gen) * 2 - 1, dis(gen) * 2 - 1);
+        rand_dir = Vec3(lfsr_uniform_random() * 2 - 1, lfsr_uniform_random() * 2 - 1, lfsr_uniform_random() * 2 - 1);
+    } while (dot(rand_dir, rand_dir) >= 1.0);
+    if (dot(rand_dir, normal) > 0.0)
+        return normalize(rand_dir);
+    else
+        return -normalize(rand_dir);
+}
 
-        // Extract the input value
-        float input_sample = *reinterpret_cast<float*>(&input_data.data);
+Vec3 background(const Ray &ray)
+{
+    float t = 0.5 * (ray.direction.y + 1.0);
+    return (1.0 - t) * Vec3(1.0, 1.0, 1.0) + t * Vec3(0.5, 0.7, 1.0);
+}
 
-        // Apply the Wah-Wah filter
-        float filtered_sample = wah_wah_filter(input_sample, time, sample_rate, min_freq, max_freq, lfo_freq);
-
-        // Update the time for the LFO
-        time += 1.0f / sample_rate;
-
-        // Prepare output data
-        output_data.data = *reinterpret_cast<uint32_t*>(&filtered_sample);
-        output_data.keep = input_data.keep;
-        output_data.strb = input_data.strb;
-        output_data.user = input_data.user;
-        output_data.last = input_data.last;
-        output_data.id = input_data.id;
-        output_data.dest = input_data.dest;
-
-        // Write to the output stream
-        output_stream.write(output_data);
-
-        if(input_data.last)
+Vec3 trace_ray(Ray ray, const Scene &scene, int max_depth = 5)
+{
+    Vec3 color(0.0, 0.0, 0.0);
+    Vec3 attenuation(1.0, 1.0, 1.0);
+    for (int i = 0; i < max_depth; ++i)
+    {
+        float t;
+        Sphere hit_object;
+        if (!scene.intersect(ray, t, hit_object))
+        {
+            color += attenuation * background(ray);
             break;
+        }
+        else
+        {
+            Vec3 hit_point = ray.origin + t * ray.direction;
+            Vec3 normal = normalize(hit_point - hit_object.center);
+            Vec3 direction = random_in_hemisphere(normal);
+            ray = Ray(hit_point + 1e-4 * normal, direction);
+            attenuation = attenuation * hit_object.material.color;
+        }
+    }
+    return color;
+}
+
+void render(hls::stream<packet> &r_stream, hls::stream<packet> &g_stream, hls::stream<packet> &b_stream,
+            int &width, int &height, int &samples_per_pixel)
+{
+#pragma HLS INTERFACE mode=s_axilite port=width
+#pragma HLS INTERFACE mode=s_axilite port=height
+#pragma HLS INTERFACE mode=s_axilite port=samples_per_pixel
+#pragma HLS INTERFACE mode=s_axilite port=return
+#pragma HLS INTERFACE mode=axis port=r_stream
+#pragma HLS INTERFACE mode=axis port=g_stream
+#pragma HLS INTERFACE mode=axis port=b_stream
+
+    Scene scene;
+    // Add a ground sphere
+    Material ground_material(Vec3(0.8, 0.8, 0.0));
+    scene.add(Sphere(Vec3(0, -100.5, -1), 100, ground_material));
+    // Add a center sphere
+    Material center_material(Vec3(0.7, 0.3, 0.3));
+    scene.add(Sphere(Vec3(0, 0, -1), 0.5, center_material));
+    // Add a right sphere
+    Material right_material(Vec3(0.8, 0.6, 0.2));
+    scene.add(Sphere(Vec3(1, 0, -1), 0.5, right_material));
+    // Add a left sphere
+    Material left_material(Vec3(0.1, 0.2, 0.5));
+    scene.add(Sphere(Vec3(-1, 0, -1), 0.5, left_material));
+
+    Vec3 camera_origin(0.0, 0.0, 0.0);
+    float aspect_ratio = float(width) / height;
+    float viewport_height = 2.0;
+    float viewport_width = aspect_ratio * viewport_height;
+    float focal_length = 1.0;
+
+    Vec3 horizontal(viewport_width, 0, 0);
+    Vec3 vertical(0, viewport_height, 0);
+    Vec3 lower_left_corner =
+        camera_origin - horizontal / 2 - vertical / 2 - Vec3(0, 0, focal_length);
+
+    packet r_packet, g_packet, b_packet;
+    r_packet.last = false;
+    r_packet.keep = -1;
+    r_packet.strb = -1;
+    g_packet.last = false;
+    g_packet.keep = -1;
+    g_packet.strb = -1;
+    b_packet.last = false;
+    b_packet.keep = -1;
+    b_packet.strb = -1;
+
+    for (int j = 0; j < height; ++j)
+    {
+        for (int i = 0; i < width; ++i)
+        {
+            Vec3 pixel_color(0.0, 0.0, 0.0);
+            for (int s = 0; s < samples_per_pixel; ++s)
+            {
+                float u = (i + lfsr_uniform_random()) / (width - 1);
+                float v = (j + lfsr_uniform_random()) / (height - 1);
+                //float u = (i + 0.5f) / (width - 1);
+                //float v = (j + 0.5f) / (height - 1);
+                Vec3 direction =
+                    lower_left_corner + u * horizontal + v * vertical - camera_origin;
+                Ray ray(camera_origin, direction);
+                pixel_color += trace_ray(ray, scene);
+            }
+            pixel_color /= samples_per_pixel;
+            // Gamma correction
+            pixel_color = Vec3(hls::sqrt(pixel_color.x), hls::sqrt(pixel_color.y),
+                               hls::sqrt(pixel_color.z));
+            // Write the color to file
+            unsigned char ir = static_cast<unsigned char>(255.999 * hls::min(hls::max(pixel_color.x, 0.0f), 1.0f));
+            unsigned char ig = static_cast<unsigned char>(255.999 * hls::min(hls::max(pixel_color.y, 0.0f), 1.0f));
+            unsigned char ib = static_cast<unsigned char>(255.999 * hls::min(hls::max(pixel_color.z, 0.0f), 1.0f));
+
+			packet r_packet, g_packet, b_packet;
+            r_packet.data = ir;
+            g_packet.data = ig;
+            b_packet.data = ib;
+
+            if(i == width-1 && j == height-1)
+            {
+                r_packet.last = true;
+                g_packet.last = true;
+                b_packet.last = true;
+            }
+            else
+            {
+                r_packet.last = false;
+                g_packet.last = false;
+                b_packet.last = false;
+            }
+
+            r_stream.write(r_packet);
+            g_stream.write(g_packet);
+            b_stream.write(b_packet);
+            
+            //r_buffer[i + j * width] = ir;
+            //g_buffer[i + j * width] = ig;
+            //b_buffer[i + j * width] = ib;
+        }
     }
 }
