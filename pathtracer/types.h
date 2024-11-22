@@ -144,8 +144,11 @@ public:
     {
         bool hit_anything = false;
         float closest_t = 1e30;
+        intersect_loop:
         for (const auto &object : objects)
         {
+            #pragma HLS LOOP_TRIPCOUNT max=5 avg=5 min=5
+
             float temp_t;
             if (object.intersect(ray, temp_t))
             {
