@@ -2,7 +2,7 @@ import numpy as np
 import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
 
-def wah_wah_filter(input_signal, sample_rate, min_freq=500, max_freq=3000, lfo_freq=0.7, Q=1):
+def wah_wah_filter(input_signal, sample_rate, min_freq=500, max_freq=3000, lfo_freq=1.0, Q=1):
     """
     Wah-Wah filter implementation.
 
@@ -67,8 +67,6 @@ if __name__ == "__main__":
     input_filename = "PinkPanther30.wav"
     output_filename = "PinkPanther30_filtered.wav"
     sample_rate, input_signal = wav.read(input_filename)
-
-    print(input_signal.dtype)
 
     # Check if the signal is stereo
     if len(input_signal.shape) == 2:  # Stereo signal
