@@ -6,10 +6,10 @@
 #include "hls_stream.h"
 #include "hls_math.h"
 
-#include "types.h"
+//#include "types.h"
 
 #define size 100
 
 typedef  hls::axis<float, 0, 0, 0, (AXIS_ENABLE_KEEP | AXIS_ENABLE_LAST | AXIS_ENABLE_STRB), false> packet;
 
-extern int waveprop(hls::stream<packet> &r_stream, hls::stream<packet> &g_stream, hls::stream<packet> &b_stream,) 
+extern int waveprop(hls::stream<packet> &output_stream);

@@ -8,32 +8,27 @@
 
 int main() 
 {
-    int width = 200;
-    int height = 200;
-    int samples_per_pixel = 10;
+    cv::Mat output_buffer(size, size, CV_8UC1, cv::Scalar(0));
 
-    cv::Mat output_buffer(height, width, CV_32FC1, cv::Scalar(0));
-
-	hls::stream<packet> r_s_out, g_s_out, b_s_out;
+	hls::stream<packet> s_out;
     
-    render(r_s_out, g_s_out, b_s_out, width, height, samples_per_pixel);
+    for(int i = 0; i < 100; i++)
+    {
+        waveprop(s_out);
 
-    for (int y = 0; y < height; y++)
-	{
-        for(int x = 0; x < width; x++)
+        for (int y = 0; y < size; y++)
         {
-            packet r_packet, g_packet, b_packet;
-            r_s_out.read(r_packet);
-            g_s_out.read(g_packet);
-            b_s_out.read(b_packet);
+            for(int x = 0; x < size; x++)
+            {
+                packet out_packet;
+                s_out.read(out_packet);
 
-            r_buffer.at<unsigned char>(y, x) = r_packet.data;
-            g_buffer.at<unsigned char>(y, x) = g_packet.data;
-            b_buffer.at<unsigned char>(y, x) = b_packet.data;
+                output_buffer.at<unsigned char>(y, x) = (unsigned char)((float(out_packet.data) + 1.0)*255.0/2.0);
+            }
         }
-	}
+    }
 
-    cv::imwrite("pathtracer_ouput.png", r_buffer);
+    cv::imwrite("waveprop_ouput.png", output_buffer);
 
     return 0;
 }
