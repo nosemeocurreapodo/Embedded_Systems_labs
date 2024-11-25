@@ -159,7 +159,6 @@ height_loop:
             int ib = static_cast<int>(255.999 *
                                       hls::min(hls::max(pixel_color.z, 0.0f), 1.0f));
 
-            packet r_packet, g_packet, b_packet;
             r_packet.data = ir;
             g_packet.data = ig;
             b_packet.data = ib;
