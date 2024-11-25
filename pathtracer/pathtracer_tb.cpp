@@ -8,13 +8,11 @@
 
 int main() 
 {
-    int width = 200;
-    int height = 200;
-    int samples_per_pixel = 10;
+    int width = 50;
+    int height = 50;
+    int samples_per_pixel = 2;
 
-    cv::Mat r_buffer(height, width, CV_8UC1, cv::Scalar(0));
-    cv::Mat g_buffer(height, width, CV_8UC1, cv::Scalar(0));
-    cv::Mat b_buffer(height, width, CV_8UC1, cv::Scalar(0));
+    cv::Mat image(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
 
 	hls::stream<packet> r_s_out, g_s_out, b_s_out;
     
@@ -29,13 +27,16 @@ int main()
             g_s_out.read(g_packet);
             b_s_out.read(b_packet);
 
-            r_buffer.at<unsigned char>(y, x) = r_packet.data;
-            g_buffer.at<unsigned char>(y, x) = g_packet.data;
-            b_buffer.at<unsigned char>(y, x) = b_packet.data;
+            cv::Vec3b pix;
+            pix.val[2] = (unsigned char)(r_packet.data);
+            pix.val[1] = (unsigned char)(g_packet.data);
+            pix.val[0] = (unsigned char)(b_packet.data);
+
+            image.at<cv::Vec3b>(y, x) = pix;
         }
 	}
 
-    cv::imwrite("pathtracer_ouput.png", r_buffer);
+    cv::imwrite("pathtracer_ouput.png", image);
 
     return 0;
 }
