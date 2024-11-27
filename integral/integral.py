@@ -1,54 +1,42 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
-def cumulative_rectangle(x, y):
-    dx = x[1] - x[0]
-    I_rect = np.zeros(len(y))
-    I_rect[1:] = np.cumsum(y[:-1]) * dx
-    return I_rect
+# Define the original signal
+N = 10  # Number of original data points
+x_original = np.linspace(0, 10, N)
+y_original = np.sin(x_original)
 
-def cumulative_trapezoid(x, y):
-    dx = x[1] - x[0]
-    I_trap = np.zeros(len(y))
-    I_trap[1:] = np.cumsum((y[:-1] + y[1:]) / 2) * dx
-    return I_trap
+# Points where we want to evaluate the interpolated functions
+x_interp = np.linspace(0, 10, 1000)
 
-def cumulative_simpson(x, y):
-    N = len(x)
-    I_simp = np.zeros(N)
-    if N < 3:
-        return I_simp  # Not enough points for Simpson's rule
-    dx = x[1] - x[0]
-    for i in range(2, N, 2):
-        I_simp[i] = I_simp[i-2] + (dx/3)*(y[i-2] + 4*y[i-1] + y[i])
-        if i+1 < N:
-            # For odd indices, approximate using trapezoidal rule
-            I_simp[i+1] = I_simp[i] + (y[i] + y[i+1])/2 * dx
-    # Handle last point if N is even
-    if N % 2 == 0:
-        I_simp[N-1] = I_simp[N-3] + (dx/3)*(y[N-3] + 4*y[N-2] + y[N-1])
-    return I_simp
+# Zeroth-degree (nearest-neighbor) interpolation
+nearest_interp = interp1d(x_original, y_original, kind='nearest')
+y_nearest = nearest_interp(x_interp)
 
-# Define the signal
-N = 1000
-x = np.linspace(0, 10, N)
-dx = x[1] - x[0]
-y = np.sin(x)
+# First-degree (linear) interpolation
+linear_interp = interp1d(x_original, y_original, kind='linear')
+y_linear = linear_interp(x_interp)
 
-# Compute cumulative integrals using different methods
-I_rect = cumulative_rectangle(x, y)
-I_trap = cumulative_trapezoid(x, y)
-I_simp = cumulative_simpson(x, y)
+# Second-degree (quadratic) interpolation
+quadratic_interp = interp1d(x_original, y_original, kind='quadratic')
+y_quadratic = quadratic_interp(x_interp)
 
-# Plot the original signal and the cumulative integrals
-plt.figure(figsize=(10,6))
-plt.plot(x, y, label='Original Signal')
-plt.plot(x, I_rect, label='First Degree (Rectangle Rule)')
-plt.plot(x, I_trap, label='Second Degree (Trapezoidal Rule)')
-plt.plot(x, I_simp, label="Third Degree (Simpson's Rule)")
+# Third-degree (cubic) interpolation
+cubic_interp = interp1d(x_original, y_original, kind='cubic')
+y_cubic = cubic_interp(x_interp)
+
+# Plot the original signal and the interpolations
+plt.figure(figsize=(12, 8))
+plt.plot(x_interp, np.sin(x_interp), 'k--', label='True Signal')
+plt.plot(x_original, y_original, 'ko', label='Original Data Points')
+plt.plot(x_interp, y_nearest, label='Zeroth Degree (Nearest-Neighbor Interpolation)')
+plt.plot(x_interp, y_linear, label='First Degree (Linear Interpolation)')
+plt.plot(x_interp, y_quadratic, label='Second Degree (Quadratic Interpolation)')
+plt.plot(x_interp, y_cubic, label='Third Degree (Cubic Interpolation)')
 plt.legend()
 plt.xlabel('x')
 plt.ylabel('Value')
-plt.title('Signal and Its Integral Approximations')
+plt.title('Signal and Its Interpolations')
 plt.grid(True)
 plt.show()
