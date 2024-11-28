@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
@@ -7,6 +8,10 @@ N = 100         # Grid size
 dt = 0.1        # Time step
 diff = 0.0      # Diffusion rate
 visc = 0.0001   # Viscosity
+
+#to measure execution time
+acc_update_time = 0
+update_count = 0
 
 def set_bnd(b, x):
     N = x.shape[0]-2
@@ -115,7 +120,9 @@ im = ax.imshow(dens[1:N+1,1:N+1], cmap='cividis', origin='lower',
 plt.colorbar(im, ax=ax)
 
 def update(frame):
-    global u, v, u_prev, v_prev, dens, dens_prev
+    global u, v, u_prev, v_prev, dens, dens_prev, acc_update_time, update_count
+
+    start_time = time.time()
 
     # Clear previous sources
     dens_prev.fill(0)
@@ -138,7 +145,16 @@ def update(frame):
 
     vel_step(u, v, u_prev, v_prev, visc, dt)
     dens_step(dens, dens_prev, u, v, diff, dt)
-
+    
+    end_time = time.time()
+    
+    update_time = end_time - start_time
+    acc_update_time = acc_update_time + update_time
+    update_count += 1
+    
+    print("mean update time (s): ", acc_update_time/update_count)
+    
+    #Normalize the density for better visualization
     normdens = 100*dens[1:N+1,1:N+1]/np.max(dens[1:N+1,1:N+1])
 
     #im.set_array(dens[1:N+1,1:N+1])
