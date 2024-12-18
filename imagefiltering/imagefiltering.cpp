@@ -1,6 +1,6 @@
-#include "conv2D_3x3.h"
+#include "imagefiltering.h"
 
-int conv2D_3x3(hls::stream<packet> &input, hls::stream<packet> &output, int &in_width, float kernel_data[3 * 3])
+int imagefiltering_compute(hls::stream<packet> &input, hls::stream<packet> &output, int &in_width, float kernel_data[3 * 3])
 {
 #pragma HLS INTERFACE axis port = input
 #pragma HLS INTERFACE axis port = output
@@ -8,7 +8,7 @@ int conv2D_3x3(hls::stream<packet> &input, hls::stream<packet> &output, int &in_
 #pragma HLS INTERFACE s_axilite port = kernel_data
 #pragma HLS INTERFACE s_axilite port = return
 
-    shift_register<data_type, MAX_WIDTH*3> shift_reg;
+    shift_register<data_type, MAX_WIDTH * 3> shift_reg;
     // #pragma HLS ARRAY_PARTITION variable = in_buffer complete dim = 2
 
     mat3<data_type> kernel;
@@ -61,10 +61,10 @@ main_loop:
 
         shift_reg.shift_down(in_data);
 
-        if (data_counter <= MAX_WIDTH*3 - in_width - 1)
+        if (data_counter <= MAX_WIDTH * 3 - in_width - 1)
             continue;
 
-        if (padding_data_counter > MAX_WIDTH*3 - in_width - 1)
+        if (padding_data_counter > MAX_WIDTH * 3 - in_width - 1)
             break;
 
         mat3<data_type> data = shift_reg.getMat3(in_width);

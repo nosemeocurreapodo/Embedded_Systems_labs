@@ -1,12 +1,12 @@
 #include "waveprop.h"
 
 // Initialize wave amplitude matrices
-static float u_past[size][size];    // Wave amplitude at time n-1
-static float u_present[size][size]; // Wave amplitude at time n
-static float u_future[size][size];  // Wave amplitude at time n+1
+static data_type u_past[size][size];    // Wave amplitude at time n-1
+static data_type u_present[size][size]; // Wave amplitude at time n
+static data_type u_future[size][size];  // Wave amplitude at time n+1
 static int step = 0;
 
-int waveprop(hls::stream<packet> &output_stream)
+int waveprop_compute(hls::stream<packet> &output_stream)
 {
 #pragma HLS INTERFACE mode=s_axilite port=return
 #pragma HLS INTERFACE mode=axis port=output_stream
@@ -59,10 +59,10 @@ update_loop_i:
             }
             else
             {
-                u_future[i][j] = 2.0 * u_present[i][j] - u_past[i][j] +
-                                 s2 * (u_present[i + 1][j] + u_present[i - 1][j] +
+                u_future[i][j] = data_type(2.0) * u_present[i][j] - u_past[i][j] +
+                                 data_type(s2) * (u_present[i + 1][j] + u_present[i - 1][j] +
                                        u_present[i][j + 1] + u_present[i][j - 1] -
-                                       4.0 * u_present[i][j]);
+                                       data_type(4.0) * u_present[i][j]);
             }
         }
     }
@@ -81,7 +81,7 @@ move_loop_i:
             u_present[i][j] = u_future[i][j];
 
             packet output;
-            output.data = u_present[i][j];
+            output.data = u_present[i][j]*255;
             output.keep = -1;
             output.strb = -1;
             // output.user = input_data.user;

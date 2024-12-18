@@ -6,8 +6,12 @@
 #include "hls_stream.h"
 #include "hls_math.h"
 
-#include "types.h"
+//#include "types.h"
+
+#define N 200
+
+typedef ap_fixed<32, 16> data_type;
 
 typedef  hls::axis<int, 0, 0, 0, (AXIS_ENABLE_KEEP | AXIS_ENABLE_LAST | AXIS_ENABLE_STRB), false> packet;
 
-extern void pathtracer_compute(hls::stream<packet> &r_stream, hls::stream<packet> &g_stream, hls::stream<packet> &b_stream, int &width, int &height, int &samples_per_pixel);
+extern int gameoflife_compute(hls::stream<packet> &output_stream);

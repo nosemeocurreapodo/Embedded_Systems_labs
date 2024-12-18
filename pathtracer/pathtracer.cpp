@@ -76,7 +76,7 @@ trace_ray_loop:
     return color;
 }
 
-void render(hls::stream<packet> &r_stream, hls::stream<packet> &g_stream,
+void pathtracer_compute(hls::stream<packet> &r_stream, hls::stream<packet> &g_stream,
             hls::stream<packet> &b_stream, int &width, int &height,
             int &samples_per_pixel)
 {

@@ -16,7 +16,7 @@ int main()
 
 	hls::stream<packet> r_s_out, g_s_out, b_s_out;
     
-    render(r_s_out, g_s_out, b_s_out, width, height, samples_per_pixel);
+    pathtracer_compute(r_s_out, g_s_out, b_s_out, width, height, samples_per_pixel);
 
     for (int y = 0; y < height; y++)
 	{
