@@ -79,7 +79,7 @@ int main(void)
         kernel[7] = 1.0/9.0;
         kernel[8] = 1.0/9.0;
     */
-    imagefiltering_compute(s_in, s_out, width, kernel);
+    imagefiltering_compute(s_in, s_out, width, height, kernel);
 
     for (int y = 0; y < height; y++)
     {

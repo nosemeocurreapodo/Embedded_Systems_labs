@@ -1,6 +1,6 @@
 #include "imagefiltering.h"
 
-int imagefiltering_compute(hls::stream<packet> &input, hls::stream<packet> &output, int &in_width, float kernel_data[3 * 3])
+int imagefiltering_compute(hls::stream<packet> &input, hls::stream<packet> &output, int &in_width, int &in_height, float kernel_data[3 * 3])
 {
 #pragma HLS INTERFACE axis port = input
 #pragma HLS INTERFACE axis port = output
@@ -16,12 +16,6 @@ int imagefiltering_compute(hls::stream<packet> &input, hls::stream<packet> &outp
 
     // initialize buffers
 
-init_buffer_loop:
-    for (int i = 0; i < 3 * MAX_WIDTH; i++)
-    {
-        shift_reg.shift_down(0);
-    }
-
 init_kernel_y_loop:
     for (int y = 0; y < 3; y++)
     {
@@ -35,11 +29,25 @@ init_kernel_y_loop:
     }
 
     bool last_was_read = false;
-    int data_counter = 0;
-    int padding_data_counter = 0;
+
+init_buffer_loop:
+    for (int i = 0; i < 3 * MAX_WIDTH; i++)
+    {
+        data_type in_data = data_type(0.0);
+        if (!last_was_read)
+        {
+            packet in_packet;
+            input.read(in_packet);
+            in_data = data_type(in_packet.data);
+            if (in_packet.last == 1)
+                last_was_read = true;
+        }
+
+        shift_reg.shift_down(0);
+    }
 
 main_loop:
-    while (true)
+    for (int i = 0; i < in_width * in_height; i++)
     {
 // #pragma HLS PIPELINE II=1
 #pragma HLS LOOP_TRIPCOUNT min = 307200 max = 307200
@@ -52,26 +60,27 @@ main_loop:
             in_data = data_type(in_packet.data);
             if (in_packet.last == 1)
                 last_was_read = true;
-            data_counter++;
-        }
-        else
-        {
-            padding_data_counter++;
         }
 
         shift_reg.shift_down(in_data);
-
-        if (data_counter <= MAX_WIDTH * 3 - in_width - 1)
-            continue;
-
-        if (padding_data_counter > MAX_WIDTH * 3 - in_width - 1)
-            break;
 
         mat3<data_type> data = shift_reg.getMat3(in_width);
         data_type conv = data.mul_v2(kernel);
 
         packet out_packet;
         out_packet.data = conv;
+        out_packet.keep = -1;
+        out_packet.strb = -1;
+        // output.user = input_data.user;
+        // output.last = input_data.last;
+        // output.id = input_data.id;
+        // output.dest = input_data.dest;
+
+        if (i == in_width * in_height - 1)
+            out_packet.last = true;
+        else
+            out_packet.last = false;
+            
         output.write(out_packet);
     }
 
