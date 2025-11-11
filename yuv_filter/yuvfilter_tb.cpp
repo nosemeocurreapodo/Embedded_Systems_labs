@@ -15,7 +15,7 @@ extern "C"
     void yuv_filter(
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
-        float scale_Y);
+        int scale_Y);
 }
 
 int main()
@@ -53,7 +53,7 @@ int main()
         }
     }
 
-    yuv_filter(stream_in, stream_out, 1.2f);
+    yuv_filter(stream_in, stream_out, 130);
 
     unsigned char rgb_out[width * height * 3];
 

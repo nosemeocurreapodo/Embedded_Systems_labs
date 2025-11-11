@@ -3,115 +3,74 @@
 
 struct pixel
 {
-   unsigned char ch1;
-   unsigned char ch2;
-   unsigned char ch3;
-   unsigned char ch4;
-   bool last;
+   int ch1;
+   int ch2;
+   int ch3;
+   int ch4;
 };
 
-// Convert RGB image to Y'UV format
-void rgb2yuv(hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
-             hls::stream<pixel> &stream_out)
+static int clamp(int x, int min, int max)
 {
+   if (x < min)
+      return min;
+   if (x > max)
+      return max;
+   return x;
+}
 
-rgb2yuv_loop:
-   while (1)
-   {
-      ap_axis<32, 2, 5, 6> data_in;
+// Convert RGB image to Y'UV format
+void rgb2yuv(ap_axis<32, 2, 5, 6> &data_in,
+             pixel &data_out)
+{
+   int R = data_in.data.range(23, 16);
+   int G = data_in.data.range(15, 8);
+   int B = data_in.data.range(7, 0);
 
-      stream_in.read(data_in);
+   int Y = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
+   int U = (((-38) * R + (-74) * G + 112 * B + 128) >> 8) + 128;
+   int V = ((122 * R + (-94) * G + (-18) * B + 128) >> 8) + 128;
 
-      unsigned char R = data_in.data.range(23, 16);
-      unsigned char G = data_in.data.range(15, 8);
-      unsigned char B = data_in.data.range(7, 0);
-
-      unsigned char Y = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
-      unsigned char U = (((-38) * R + (-74) * G + 112 * B + 128) >> 8) + 128;
-      unsigned char V = ((122 * R + (-94) * G + (-18) * B + 128) >> 8) + 128;
-
-      pixel out;
-
-      out.ch1 = Y;
-      out.ch2 = U;
-      out.ch3 = V;
-      out.last = data_in.last;
-
-      stream_out.write(out);
-
-      if (data_in.last)
-      {
-         break;
-      }
-   }
+   data_out.ch1 = clamp(Y, 0, 255);
+   data_out.ch2 = clamp(U, 0, 255);
+   data_out.ch3 = clamp(V, 0, 255);
+   data_out.ch4 = 0;
 }
 
 void scale_y(
-    hls::stream<pixel> &stream_in,
-    hls::stream<pixel> &stream_out,
+    pixel &data_in,
+    pixel &data_out,
     int Y_scale)
 {
+   int Y = data_in.ch1;
+   int U = data_in.ch2;
+   int V = data_in.ch3;
 
-   while (1)
-   {
-      pixel data;
+   Y = clamp((Y * Y_scale) >> 7, 0, 255);
 
-      stream_in.read(data);
-
-      unsigned char Y = data.ch1;
-      unsigned char U = data.ch2;
-      unsigned char V = data.ch3;
-
-      Y = (unsigned char)((int(Y) * Y_scale) >> 7);
-
-      data.ch1 = Y;
-      data.ch2 = U;
-      data.ch3 = V;
-
-      stream_out.write(data);
-
-      if (data.last)
-      {
-         break;
-      }
-   }
+   data_out.ch1 = Y;
+   data_out.ch2 = U;
+   data_out.ch3 = V;
 }
 
 // Convert YUV image to RGB format
-void yuv2rgb(hls::stream<pixel> &stream_in,
-             hls::stream<ap_axis<32, 2, 5, 6>> &stream_out)
+void yuv2rgb(pixel &data_in,
+             ap_axis<32, 2, 5, 6> &data_out,
+             bool last)
 {
+   int Y = data_in.ch1;
+   int U = data_in.ch2;
+   int V = data_in.ch3;
 
-   while (1)
-   {
-      pixel data;
+   int R = (298 * (Y - 16) + 409 * (V - 128) + 128) >> 8;
+   int G = (298 * (Y - 16) + (-100) * (U - 128) + (-208) * (V - 128) + 128) >> 8;
+   int B = (298 * (Y - 16) + 516 * (U - 128) + 128) >> 8;
 
-      stream_in.read(data);
-
-      unsigned char Y = data.ch1;
-      unsigned char U = data.ch2;
-      unsigned char V = data.ch3;
-
-      unsigned char R = (298 * (Y - 16) + 409 * (V - 128) + 128) >> 8;
-      unsigned char G = (298 * (Y - 16) + (-100) * (U - 128) + (-208) * (V - 128) + 128) >> 8;
-      unsigned char B = (298 * (Y - 16) + 516 * (U - 128) + 128) >> 8;
-
-      ap_axis<32, 2, 5, 6> data_out;
-
-      data_out.data.range(23, 16) = Y;
-      data_out.data.range(15, 8) = U;
-      data_out.data.range(7, 0) = V;
-      data_out.keep = -1;
-      data_out.strb = -1;
-      data_out.last = data.last;
-
-      stream_out.write(data_out);
-
-      if (data.last)
-      {
-         break;
-      }
-   }
+   data_out.data.range(23, 16) = clamp(R, 0, 255);
+   data_out.data.range(15, 8) = clamp(G, 0, 255);
+   data_out.data.range(7, 0) = clamp(B, 0, 255);
+   data_out.keep = -1;
+   data_out.strb = -1;
+   data_out.last = last;
 }
 
 extern "C"
@@ -127,18 +86,16 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = return
 
       ap_axis<32, 2, 5, 6> data_in;
-
       while (!data_in.last)
       {
          stream_in.read(data_in);
-         stream_out.write(data_in);
+         pixel data_yuv;
+         rgb2yuv(data_in, data_yuv);
+         pixel data_scale;
+         scale_y(data_yuv, data_scale, scale_Y);
+         ap_axis<32, 2, 5, 6> data_out;
+         yuv2rgb(data_scale, data_out, data_in.last);
+         stream_out.write(data_out);
       }
-
-      // hls::stream<pixel> stream_yuv;
-      // hls::stream<pixel> stream_scale;
-
-      // rgb2yuv(stream_in, stream_yuv);
-      // scale_y(stream_yuv, stream_scale, scale_Y);
-      // yuv2rgb(stream_scale, stream_out);
    }
 }
