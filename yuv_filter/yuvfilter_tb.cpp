@@ -13,8 +13,8 @@
 extern "C"
 {
     void yuv_filter(
-        hls::stream<ap_axis<24, 2, 5, 6>> &stream_in,
-        hls::stream<ap_axis<24, 2, 5, 6>> &stream_out,
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
         float scale_Y);
 }
 
@@ -32,14 +32,15 @@ int main()
         return 1;
     }
 
-    hls::stream<ap_axis<24, 2, 5, 6>> stream_in;
-    hls::stream<ap_axis<24, 2, 5, 6>> stream_out;
+    hls::stream<ap_axis<32, 2, 5, 6>> stream_in;
+    hls::stream<ap_axis<32, 2, 5, 6>> stream_out;
 
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
         {
-            ap_axis<24, 2, 5, 6> tmp;
+            ap_axis<32, 2, 5, 6> tmp;
+            tmp.data.range(31, 24) = 0;
             tmp.data.range(23, 16) = rgb_in[y * width * 3 + x * 3 + 0];
             tmp.data.range(15, 8) = rgb_in[y * width * 3 + x * 3 + 1];
             tmp.data.range(7, 0) = rgb_in[y * width * 3 + x * 3 + 2];
@@ -60,7 +61,7 @@ int main()
     {
         for (int x = 0; x < width; x++)
         {
-            ap_axis<24, 2, 5, 6> tmp;
+            ap_axis<32, 2, 5, 6> tmp;
             stream_out.read(tmp);
             rgb_out[y * width * 3 + x * 3 + 0] = tmp.data.range(23, 16);
             rgb_out[y * width * 3 + x * 3 + 1] = tmp.data.range(15, 8);

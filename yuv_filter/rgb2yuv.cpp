@@ -6,18 +6,19 @@ struct pixel
    unsigned char ch1;
    unsigned char ch2;
    unsigned char ch3;
+   unsigned char ch4;
    bool last;
 };
 
 // Convert RGB image to Y'UV format
-void rgb2yuv(hls::stream<ap_axis<24, 2, 5, 6>> &stream_in,
+void rgb2yuv(hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
              hls::stream<pixel> &stream_out)
 {
 
 rgb2yuv_loop:
    while (1)
    {
-      ap_axis<24, 2, 5, 6> data_in;
+      ap_axis<32, 2, 5, 6> data_in;
 
       stream_in.read(data_in);
 
@@ -78,7 +79,7 @@ void scale_y(
 
 // Convert YUV image to RGB format
 void yuv2rgb(hls::stream<pixel> &stream_in,
-             hls::stream<ap_axis<24, 2, 5, 6>> &stream_out)
+             hls::stream<ap_axis<32, 2, 5, 6>> &stream_out)
 {
 
    while (1)
@@ -95,7 +96,7 @@ void yuv2rgb(hls::stream<pixel> &stream_in,
       unsigned char G = (298 * (Y - 16) + (-100) * (U - 128) + (-208) * (V - 128) + 128) >> 8;
       unsigned char B = (298 * (Y - 16) + 516 * (U - 128) + 128) >> 8;
 
-      ap_axis<24, 2, 5, 6> data_out;
+      ap_axis<32, 2, 5, 6> data_out;
 
       data_out.data.range(23, 16) = Y;
       data_out.data.range(15, 8) = U;
@@ -115,14 +116,14 @@ void yuv2rgb(hls::stream<pixel> &stream_in,
 extern "C"
 {
    void yuv_filter(
-       hls::stream<ap_axis<24, 2, 5, 6>> &stream_in,
-       hls::stream<ap_axis<24, 2, 5, 6>> &stream_out,
+       hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
+       hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
        float scale_Y)
    {
 #pragma HLS INTERFACE axis port = stream_in
 #pragma HLS INTERFACE axis port = stream_out
-      // #pragma HLS INTERFACE s_axilite port = width
-      // #pragma HLS INTERFACE s_axilite port = height
+#pragma HLS INTERFACE s_axilite port = scale_Y
+#pragma HLS INTERFACE s_axilite port = return
 
       hls::stream<pixel> stream_yuv;
       hls::stream<pixel> stream_scale;
