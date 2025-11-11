@@ -1,9 +1,9 @@
 #include <iostream>
 #include <stdio.h>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include "ap_fixed.h"
+#include <ap_fixed.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 extern "C"
 {
@@ -63,17 +63,18 @@ int main()
         back_grid = temp;
     }
 
-    cv::Mat output_buffer(height, width, CV_8UC1, cv::Scalar(0));
-
-    for (int y = 0; y < height; y++)
+    unsigned char grid_out[width * height];
+    for (int i = 0; i < height; ++i)
     {
-        for (int x = 0; x < width; x++)
+        for (int j = 0; j < width; ++j)
         {
-            output_buffer.at<uchar>(y, x) = back_grid[y * width + x] * 255;
+            grid_out[i * width + j] = grid[i * width + j] ? 255 : 0;
         }
     }
 
-    cv::imwrite("gemeoflife_ouput.png", output_buffer);
+    stbi_write_png("out.png", width, height, 1,
+               grid_out, width);
+
 
     return 0;
 }
