@@ -49,7 +49,7 @@ rgb2yuv_loop:
 void scale_y(
     hls::stream<pixel> &stream_in,
     hls::stream<pixel> &stream_out,
-    float Y_scale)
+    int Y_scale)
 {
 
    while (1)
@@ -62,7 +62,7 @@ void scale_y(
       unsigned char U = data.ch2;
       unsigned char V = data.ch3;
 
-      Y = (unsigned char)(float(Y) * Y_scale);
+      Y = (unsigned char)((int(Y) * Y_scale) >> 7);
 
       data.ch1 = Y;
       data.ch2 = U;
@@ -102,6 +102,7 @@ void yuv2rgb(hls::stream<pixel> &stream_in,
       data_out.data.range(15, 8) = U;
       data_out.data.range(7, 0) = V;
       data_out.keep = -1;
+      data_out.strb = -1;
       data_out.last = data.last;
 
       stream_out.write(data_out);
@@ -118,18 +119,26 @@ extern "C"
    void yuv_filter(
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
-       float scale_Y)
+       int scale_Y)
    {
 #pragma HLS INTERFACE axis port = stream_in
 #pragma HLS INTERFACE axis port = stream_out
 #pragma HLS INTERFACE s_axilite port = scale_Y
 #pragma HLS INTERFACE s_axilite port = return
 
-      hls::stream<pixel> stream_yuv;
-      hls::stream<pixel> stream_scale;
+      ap_axis<32, 2, 5, 6> data_in;
 
-      rgb2yuv(stream_in, stream_yuv);
-      scale_y(stream_yuv, stream_scale, scale_Y);
-      yuv2rgb(stream_scale, stream_out);
+      while (!data_in.last)
+      {
+         stream_in.read(data_in);
+         stream_out.write(data_in);
+      }
+
+      // hls::stream<pixel> stream_yuv;
+      // hls::stream<pixel> stream_scale;
+
+      // rgb2yuv(stream_in, stream_yuv);
+      // scale_y(stream_yuv, stream_scale, scale_Y);
+      // yuv2rgb(stream_scale, stream_out);
    }
 }
