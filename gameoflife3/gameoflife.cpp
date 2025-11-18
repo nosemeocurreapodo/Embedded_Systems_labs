@@ -11,6 +11,7 @@ class fifo
 public:
     fifo()
     {
+        // #pragma HLS BIND_STORAGE variable = data type = ram_t2p impl = bram
     }
 
     T shift(T new_data)

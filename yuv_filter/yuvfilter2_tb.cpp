@@ -12,10 +12,18 @@
 
 extern "C"
 {
-    void rgb2yuv(
+    void rgb2yuv_ip(
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out);
+
+    void scale_y_ip(
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
-        int scale_Y);
+        int scale_y);
+
+    void yuv2rgb_ip(
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out);
 }
 
 int main()
@@ -32,8 +40,12 @@ int main()
         return 1;
     }
 
-    hls::stream<ap_axis<32, 2, 5, 6>> stream_in;
-    hls::stream<ap_axis<32, 2, 5, 6>> stream_out;
+    hls::stream<ap_axis<32, 2, 5, 6>> rgb2yuv_stream_in;
+    hls::stream<ap_axis<32, 2, 5, 6>> rgb2yuv_stream_out;
+    hls::stream<ap_axis<32, 2, 5, 6>> scale_y_stream_in;
+    hls::stream<ap_axis<32, 2, 5, 6>> scale_y_stream_out;
+    hls::stream<ap_axis<32, 2, 5, 6>> yuv2rgb_stream_in;
+    hls::stream<ap_axis<32, 2, 5, 6>> yuv2rgb_stream_out;
 
     for (int y = 0; y < height; y++)
     {
@@ -49,11 +61,35 @@ int main()
                 tmp.last = true;
             else
                 tmp.last = false;
-            stream_in.write(tmp);
+            rgb2yuv_stream_in.write(tmp);
         }
     }
 
-    rgb2yuv(stream_in, stream_out);
+    rgb2yuv_ip(rgb2yuv_stream_in, rgb2yuv_stream_out);
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            ap_axis<32, 2, 5, 6> tmp;
+            rgb2yuv_stream_out.read(tmp);
+            scale_y_stream_in.write(tmp);
+        }
+    }
+
+    scale_y_ip(scale_y_stream_in, scale_y_stream_out, 130);
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            ap_axis<32, 2, 5, 6> tmp;
+            scale_y_stream_out.read(tmp);
+            yuv2rgb_stream_in.write(tmp);
+        }
+    }
+
+    yuv2rgb_ip(yuv2rgb_stream_in, yuv2rgb_stream_out);
 
     unsigned char rgb_out[width * height * 3];
 
@@ -62,7 +98,7 @@ int main()
         for (int x = 0; x < width; x++)
         {
             ap_axis<32, 2, 5, 6> tmp;
-            stream_out.read(tmp);
+            yuv2rgb_stream_out.read(tmp);
             rgb_out[y * width * 3 + x * 3 + 0] = tmp.data.range(23, 16);
             rgb_out[y * width * 3 + x * 3 + 1] = tmp.data.range(15, 8);
             rgb_out[y * width * 3 + x * 3 + 2] = tmp.data.range(7, 0);

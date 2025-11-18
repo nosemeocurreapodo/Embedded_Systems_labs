@@ -12,7 +12,7 @@
 
 extern "C"
 {
-    void yuv_filter(
+    void yuv_filter_ip(
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
         int scale_Y);
@@ -53,7 +53,7 @@ int main()
         }
     }
 
-    yuv_filter(stream_in, stream_out, 130);
+    yuv_filter_ip(stream_in, stream_out, 130);
 
     unsigned char rgb_out[width * height * 3];
 

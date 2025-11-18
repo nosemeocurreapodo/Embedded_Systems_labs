@@ -71,7 +71,7 @@ void yuv2rgb(ap_axis<32, 2, 5, 6> &data_in,
 
 extern "C"
 {
-   void yuv_filter(
+   void yuv_filter_ip(
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
        int scale_Y)
@@ -81,9 +81,9 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = scale_Y
 #pragma HLS INTERFACE s_axilite port = return
 
+      ap_axis<32, 2, 5, 6> data_in;
       while (!data_in.last)
       {
-         ap_axis<32, 2, 5, 6> data_in;
          stream_in.read(data_in);
          ap_axis<32, 2, 5, 6> data_yuv;
          rgb2yuv(data_in, data_yuv);
@@ -95,18 +95,17 @@ extern "C"
       }
    }
 
-   void rgb2yuv(
+   void rgb2yuv_ip(
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out)
    {
 #pragma HLS INTERFACE axis port = stream_in
 #pragma HLS INTERFACE axis port = stream_out
-#pragma HLS INTERFACE s_axilite port = scale_Y
 #pragma HLS INTERFACE s_axilite port = return
 
+      ap_axis<32, 2, 5, 6> data_in;
       while (!data_in.last)
       {
-         ap_axis<32, 2, 5, 6> data_in;
          stream_in.read(data_in);
          ap_axis<32, 2, 5, 6> data_yuv;
          rgb2yuv(data_in, data_yuv);
@@ -114,7 +113,7 @@ extern "C"
       }
    }
 
-   void scale_y(
+   void scale_y_ip(
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
        int scale_Y)
@@ -124,9 +123,9 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = scale_Y
 #pragma HLS INTERFACE s_axilite port = return
 
+      ap_axis<32, 2, 5, 6> data_in;
       while (!data_in.last)
       {
-         ap_axis<32, 2, 5, 6> data_in;
          stream_in.read(data_in);
          ap_axis<32, 2, 5, 6> data_scale;
          scale_y(data_in, data_scale, scale_Y);
@@ -134,7 +133,7 @@ extern "C"
       }
    }
 
-   void yuv2rgb(
+   void yuv2rgb_ip(
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out)
    {
@@ -142,9 +141,9 @@ extern "C"
 #pragma HLS INTERFACE axis port = stream_out
 #pragma HLS INTERFACE s_axilite port = return
 
+      ap_axis<32, 2, 5, 6> data_in;
       while (!data_in.last)
       {
-         ap_axis<32, 2, 5, 6> data_in;
          stream_in.read(data_in);
          ap_axis<32, 2, 5, 6> data_out;
          yuv2rgb(data_in, data_out);
