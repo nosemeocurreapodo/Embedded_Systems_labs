@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Tue Nov 18 21:27:34 2025" VIVADOVERSION="2024.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Wed Nov 19 12:52:40 2025" VIVADOVERSION="2024.2">
 
   <SYSTEMINFO ARCH="zynq" BOARD="tul.com.tw:pynq-z2:part0:1.0" DEVICE="7z020" NAME="design_1" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -2890,7 +2890,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="2114354124" FULLNAME="/gameoflife_compute_0" HWVERSION="1.0" INSTANCE="gameoflife_compute_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="gameoflife_compute" VLNV="xilinx.com:hls:gameoflife_compute:1.0">
+    <MODULE COREREVISION="2114355049" FULLNAME="/gameoflife_compute_0" HWVERSION="1.0" INSTANCE="gameoflife_compute_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="gameoflife_compute" VLNV="xilinx.com:hls:gameoflife_compute:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="read-write" INTERFACE="s_axi_control" NAME="Reg" RANGE="65536" USAGE="register">
