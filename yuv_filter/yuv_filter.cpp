@@ -41,7 +41,7 @@ void scale_y(
 
    Y = clamp((Y * Y_scale) >> 7, 0, 255);
 
-   data_out.data.range(23, 6) = Y;
+   data_out.data.range(23, 16) = Y;
    data_out.data.range(15, 8) = U;
    data_out.data.range(7, 0) = V;
    data_out.keep = -1;
@@ -82,6 +82,7 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = return
 
       ap_axis<32, 2, 5, 6> data_in;
+      data_in.last = false;
       while (!data_in.last)
       {
          stream_in.read(data_in);
@@ -104,6 +105,7 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = return
 
       ap_axis<32, 2, 5, 6> data_in;
+      data_in.last = false;
       while (!data_in.last)
       {
          stream_in.read(data_in);
@@ -124,6 +126,7 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = return
 
       ap_axis<32, 2, 5, 6> data_in;
+      data_in.last = false;
       while (!data_in.last)
       {
          stream_in.read(data_in);
@@ -142,6 +145,7 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = return
 
       ap_axis<32, 2, 5, 6> data_in;
+      data_in.last = false;
       while (!data_in.last)
       {
          stream_in.read(data_in);
