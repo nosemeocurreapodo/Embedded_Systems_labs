@@ -51,13 +51,13 @@ extern "C"
         gameoflife_x_loop:
             for (int x = -1; x <= grid_width; x++)
             {
-                ap_axis<32, 2, 5, 6> package;
                 int data = 0;
 
                 if (y >= 0 && x >= 0 && y < grid_height && x < grid_width)
                 {
-                    stream_in.read(package);
-                    data = package.data;
+                    ap_axis<32, 2, 5, 6> package_in;
+                    stream_in.read(package_in);
+                    data = package_in.data;
                 }
 
                 int last_line_1 = line_1.shift(mat3[2]);
@@ -105,8 +105,15 @@ extern "C"
 
                 if (y >= 1 && x >= 1)
                 {
-                    package.data = new_val;
-                    stream_out.write(package);
+                    ap_axis<32, 2, 5, 6> package_out;
+                    package_out.data = new_val;
+                    package_out.keep = -1;
+                    package_out.strb = -1;
+                    if (y == grid_height && x == grid_width)
+                        package_out.last = 1;
+                    else
+                        package_out.last = 0;
+                    stream_out.write(package_out);
                 }
             }
         }
