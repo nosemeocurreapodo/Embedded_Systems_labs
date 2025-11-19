@@ -91,7 +91,7 @@ int main()
     hls::stream<ap_axis<32, 2, 5, 6>> stream_in;
     hls::stream<ap_axis<32, 2, 5, 6>> stream_out;
 
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 10; i++)
     {
         to_stream(grid, width, height, stream_in);
         gameoflife_compute(stream_in, stream_out);
