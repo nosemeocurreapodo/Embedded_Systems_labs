@@ -71,31 +71,6 @@ void yuv2rgb(ap_axis<32, 2, 5, 6> &data_in,
 
 extern "C"
 {
-   void yuv_filter_ip(
-       hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
-       hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
-       int scale_Y)
-   {
-#pragma HLS INTERFACE axis port = stream_in
-#pragma HLS INTERFACE axis port = stream_out
-#pragma HLS INTERFACE s_axilite port = scale_Y
-#pragma HLS INTERFACE s_axilite port = return
-
-      ap_axis<32, 2, 5, 6> data_in;
-      data_in.last = false;
-      while (!data_in.last)
-      {
-         stream_in.read(data_in);
-         ap_axis<32, 2, 5, 6> data_yuv;
-         rgb2yuv(data_in, data_yuv);
-         ap_axis<32, 2, 5, 6> data_scale;
-         scale_y(data_yuv, data_scale, scale_Y);
-         ap_axis<32, 2, 5, 6> data_out;
-         yuv2rgb(data_scale, data_out);
-         stream_out.write(data_out);
-      }
-   }
-
    void rgb2yuv_ip(
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out)
