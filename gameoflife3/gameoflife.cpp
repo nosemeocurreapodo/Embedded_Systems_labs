@@ -98,7 +98,7 @@ extern "C"
 #pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
 
         gameoflife_x_loop:
-            for (int x = -1; x <= grid_width; x++)
+            for (int x = -1; x <= grid_width + 3; x++)
             {
 #pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
 
@@ -155,13 +155,13 @@ extern "C"
                     }
                 }
 
-                if (y >= 1 && x >= 1)
+                if (y >= 1 && x >= 4)
                 {
                     ap_axis<32, 2, 5, 6> package_out;
                     package_out.data = new_val;
                     package_out.keep = -1;
                     package_out.strb = -1;
-                    if (y == grid_height && x == grid_width)
+                    if (y == grid_height && x == grid_width + 3)
                         package_out.last = 1;
                     else
                         package_out.last = 0;
