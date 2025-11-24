@@ -10,7 +10,9 @@ extern "C"
 {
     int gameoflife_compute(
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
-        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out);
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
+        int grid_width,
+        int grid_height);
 }
 
 ap_uint<16> lfsr_random()
@@ -94,7 +96,7 @@ int main()
     for (int i = 0; i < 10; i++)
     {
         to_stream(grid, width, height, stream_in);
-        gameoflife_compute(stream_in, stream_out);
+        gameoflife_compute(stream_in, stream_out, width, height);
         from_stream(back_grid, width, height, stream_out);
         // std::swap(grid, back_grid);
         bool *temp = grid;

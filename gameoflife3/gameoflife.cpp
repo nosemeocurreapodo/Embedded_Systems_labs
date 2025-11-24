@@ -2,24 +2,28 @@
 #include "ap_axi_sdata.h"
 #include "hls_stream.h"
 
-#define grid_width 1024
-#define grid_height 1024
-
-template <typename T, int width>
-class fifo
+template <typename T, int max_width>
+class fifo_ff
 {
 public:
-    fifo()
+    fifo_ff(int w)
     {
-        // #pragma HLS BIND_STORAGE variable = data type = ram_t2p impl = bram
+#pragma HLS BIND_STORAGE variable = data type = ram_1p impl = lutram
+        //  #pragma HLS BIND_STORAGE variable = data type = ram_t2p impl =  bram
+#pragma HLS ARRAY_PARTITION variable = data complete dim = 1
+        width = w;
     }
 
     T shift(T new_data)
     {
+#pragma HLS inline
+
         T last_data = data[width - 1];
-    fifo_loop:
-        for (int i = width - 1; i > 0; i--)
+    fifo_ff_loop:
+        for (int i = max_width - 1; i > 0; i--)
         {
+            // #pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
+#pragma HLS UNROLL
             data[i] = data[i - 1];
         }
         data[0] = new_data;
@@ -27,30 +31,77 @@ public:
     }
 
 private:
-    T data[width];
+    T data[max_width];
+    int width;
+};
+
+template <typename T, int max_width>
+class fifo_bram
+{
+public:
+    fifo_bram(int w)
+    {
+        // #pragma HLS BIND_STORAGE variable = data type = ram_t2p impl = bram
+        address = 0;
+        width = w;
+    }
+
+    T shift(T new_data)
+    {
+        // #pragma HLS inline
+
+        int write_address = address + width - 1;
+        if (write_address > max_width - 1)
+            write_address -= max_width;
+
+        int read_address = address;
+
+        T last_data = data[read_address];
+        data[write_address] = new_data;
+
+        address++;
+        if (address >= max_width)
+            address = 0;
+
+        return last_data;
+    }
+
+private:
+    T data[max_width];
+    int address;
+    int width;
 };
 
 extern "C"
 {
     int gameoflife_compute(
         hls::stream<ap_axis<32, 2, 5, 6>> &stream_in,
-        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out)
+        hls::stream<ap_axis<32, 2, 5, 6>> &stream_out,
+        int grid_width,
+        int grid_height)
     {
 #pragma HLS INTERFACE axis port = stream_in
 #pragma HLS INTERFACE axis port = stream_out
+#pragma HLS INTERFACE s_axilite port = grid_width
+#pragma HLS INTERFACE s_axilite port = grid_height
 #pragma HLS INTERFACE s_axilite port = return
 
         int mat3[9];
 
-        fifo<int, grid_width - 1> line_1;
-        fifo<int, grid_width - 1> line_2;
+        fifo_ff<int, 2048> line_1(grid_width - 1);
+        fifo_ff<int, 2048> line_2(grid_width - 1);
+        fifo_ff<int, 2048> line_3(grid_width - 1);
 
     gameoflife_y_loop:
         for (int y = -1; y <= grid_height; y++)
         {
+#pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
+
         gameoflife_x_loop:
             for (int x = -1; x <= grid_width; x++)
             {
+#pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
+
                 int data = 0;
 
                 if (y >= 0 && x >= 0 && y < grid_height && x < grid_width)
@@ -60,20 +111,21 @@ extern "C"
                     data = package_in.data;
                 }
 
-                int last_line_1 = line_1.shift(mat3[2]);
-                int last_line_2 = line_2.shift(mat3[5]);
-
-                mat3[8] = mat3[7];
-                mat3[7] = mat3[6];
-                mat3[6] = last_line_2;
-
-                mat3[5] = mat3[4];
-                mat3[4] = mat3[3];
-                mat3[3] = last_line_1;
+                int last_line_1 = line_1.shift(data);
+                int last_line_2 = line_2.shift(mat3[2]);
+                int last_line_3 = line_3.shift(mat3[5]);
 
                 mat3[2] = mat3[1];
                 mat3[1] = mat3[0];
-                mat3[0] = data;
+                mat3[0] = last_line_1;
+
+                mat3[5] = mat3[4];
+                mat3[4] = mat3[3];
+                mat3[3] = last_line_2;
+
+                mat3[8] = mat3[7];
+                mat3[7] = mat3[6];
+                mat3[6] = last_line_3;
 
                 // Compute the sum of the 8 neighbors
                 int total = 0;
