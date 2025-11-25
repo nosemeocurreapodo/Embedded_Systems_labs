@@ -2,28 +2,45 @@
 #include "ap_axi_sdata.h"
 #include "hls_stream.h"
 
-template <typename T, int max_width>
-class fifo_ff
+template <typename T, int width>
+class fifo_shiftreg_1
 {
 public:
-    fifo_ff(int w)
+    fifo_shiftreg_1()
     {
-#pragma HLS BIND_STORAGE variable = data type = ram_1p impl = lutram
-        //  #pragma HLS BIND_STORAGE variable = data type = ram_t2p impl =  bram
-#pragma HLS ARRAY_PARTITION variable = data complete dim = 1
+    }
+
+    T shift(T new_data)
+    {
+        T last_data = data[width - 1];
+    fifo_ff_loop:
+        for (int i = width - 1; i > 0; i--)
+        {
+            data[i] = data[i - 1];
+        }
+        data[0] = new_data;
+        return last_data;
+    }
+
+private:
+    T data[width];
+};
+
+template <typename T, int max_width>
+class fifo_shiftreg_2
+{
+public:
+    fifo_shiftreg_2(int w)
+    {
         width = w;
     }
 
     T shift(T new_data)
     {
-#pragma HLS inline
-
         T last_data = data[width - 1];
     fifo_ff_loop:
         for (int i = max_width - 1; i > 0; i--)
         {
-            // #pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
-#pragma HLS UNROLL
             data[i] = data[i - 1];
         }
         data[0] = new_data;
@@ -41,15 +58,12 @@ class fifo_bram
 public:
     fifo_bram(int w)
     {
-        // #pragma HLS BIND_STORAGE variable = data type = ram_t2p impl = bram
         address = 0;
         width = w;
     }
 
     T shift(T new_data)
     {
-        // #pragma HLS inline
-
         int write_address = address + width - 1;
         if (write_address > max_width - 1)
             write_address -= max_width;
@@ -88,17 +102,25 @@ extern "C"
 
         int mat3[9];
 
-        fifo_ff<int, 2048> line_1(grid_width - 1);
-        fifo_ff<int, 2048> line_2(grid_width - 1);
-        fifo_ff<int, 2048> line_3(grid_width - 1);
+        fifo_shiftreg_1<int, 1024 - 1> line_1;
+        fifo_shiftreg_1<int, 1024 - 1> line_2;
+        fifo_shiftreg_1<int, 1024 - 1> line_3;
+
+        // fifo_shiftreg_2<int, 1024> line_1(grid_width - 1);
+        // fifo_shiftreg_2<int, 1024> line_2(grid_width - 1);
+        // fifo_shiftreg_2<int, 1024> line_3(grid_width - 1);
+
+        // fifo_bram<int, 1024> line_1(grid_width - 1);
+        // fifo_bram<int, 1024> line_2(grid_width - 1);
+        // fifo_bram<int, 1024> line_3(grid_width - 1);
 
     gameoflife_y_loop:
-        for (int y = -1; y <= grid_height; y++)
+        for (int y = -1; y <= grid_height + 3; y++)
         {
 #pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
 
         gameoflife_x_loop:
-            for (int x = -1; x <= grid_width + 3; x++)
+            for (int x = -1; x <= grid_width; x++)
             {
 #pragma HLS loop_tripcount min = 1024 max = 1024 avg = 1024
 
@@ -155,7 +177,7 @@ extern "C"
                     }
                 }
 
-                if (y >= 1 && x >= 4)
+                if (y >= 4 && x >= 1)
                 {
                     ap_axis<32, 2, 5, 6> package_out;
                     package_out.data = new_val;
