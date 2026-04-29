@@ -102,17 +102,17 @@ extern "C"
 
         int mat3[9];
 
-        fifo_shiftreg_1<int, 1024 - 1> line_1;
-        fifo_shiftreg_1<int, 1024 - 1> line_2;
-        fifo_shiftreg_1<int, 1024 - 1> line_3;
+        // fifo_shiftreg_1<int, 1024 - 1> line_1;
+        // fifo_shiftreg_1<int, 1024 - 1> line_2;
+        // fifo_shiftreg_1<int, 1024 - 1> line_3;
 
         // fifo_shiftreg_2<int, 1024> line_1(grid_width - 1);
         // fifo_shiftreg_2<int, 1024> line_2(grid_width - 1);
         // fifo_shiftreg_2<int, 1024> line_3(grid_width - 1);
 
-        // fifo_bram<int, 1024> line_1(grid_width - 1);
-        // fifo_bram<int, 1024> line_2(grid_width - 1);
-        // fifo_bram<int, 1024> line_3(grid_width - 1);
+        fifo_bram<int, 1024> line_1(grid_width - 1);
+        fifo_bram<int, 1024> line_2(grid_width - 1);
+        fifo_bram<int, 1024> line_3(grid_width - 1);
 
     gameoflife_y_loop:
         for (int y = -1; y <= grid_height + 3; y++)
@@ -183,7 +183,7 @@ extern "C"
                     package_out.data = new_val;
                     package_out.keep = -1;
                     package_out.strb = -1;
-                    if (y == grid_height && x == grid_width + 3)
+                    if (y == grid_height + 3 && x == grid_width)
                         package_out.last = 1;
                     else
                         package_out.last = 0;
